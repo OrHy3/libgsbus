@@ -451,7 +451,7 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 		const char *options[] = {
 			"description",
-			"preferred_trigger"
+			"trigger_description"
 		};
 		const char *option_key;
 
