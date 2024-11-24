@@ -330,9 +330,9 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 		dbus_error_init(error);
 
 	DBusMessage *message = dbus_message_new_method_call(
-		PORTAL_INTERFACE,
-		PORTAL_OBJECT,
 		PORTAL_TARGET,
+		PORTAL_OBJECT,
+		PORTAL_INTERFACE,
 		"ListShortcuts"
 	);
 
@@ -416,16 +416,69 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 	dbus_message_iter_next(&args);
 
-	DBusMessageIter suparray_iter;
-	DBusMessageIter supdict_iter;
-	DBusMessageIter supvariant_iter;
-	dbus_message_iter_recurse(&args, &suparray_iter);
-	dbus_message_iter_recurse(&suparray_iter, &supdict_iter);
+	dbus_message_iter_recurse(&args, &array_iter);
+	dbus_message_iter_recurse(&array_iter, &dict_iter);
 
-	dbus_message_iter_next(&supdict_iter);
+	dbus_message_iter_next(&dict_iter);
 
-	dbus_message_iter_recurse(&supdict_iter, &supvariant_iter);
-	dbus_message_iter_recurse(&supvariant_iter, &array_iter);
+	dbus_message_iter_recurse(&dict_iter, &variant_iter);
+
+	*shortcut_list = NULL;
+	*num = dbus_message_iter_get_element_count(&variant_iter);
+
+	if (*num == 0)
+		return 0;
+
+	*shortcut_list = calloc(*num, sizeof(struct gs_Shortcut));
+
+	dbus_message_iter_recurse(&variant_iter, &array_iter);
+
+	for (int i = 0; i < *num; i++) {
+
+		(*shortcut_list)[i].description = NULL;
+		(*shortcut_list)[i].trigger = NULL;
+
+		const char *result;
+
+		dbus_message_iter_recurse(&array_iter, &struct_iter);
+
+		dbus_message_iter_get_basic(&struct_iter, &result);
+		(*shortcut_list)[i].name = result;
+
+		dbus_message_iter_next(&struct_iter);
+
+		dbus_message_iter_recurse(&struct_iter, &subarray_iter);
+
+		const char *options[] = {
+			"description",
+			"preferred_trigger"
+		};
+		const char *option_key;
+
+		for (int z = 0; z < sizeof(options) / sizeof(const char*); z++) {
+
+			dbus_message_iter_recurse(&subarray_iter, &dict_iter);
+
+			dbus_message_iter_get_basic(&dict_iter, &option_key);
+
+			dbus_message_iter_next(&dict_iter);
+
+			dbus_message_iter_recurse(&dict_iter, &variant_iter);
+
+			dbus_message_iter_get_basic(&variant_iter, &result);
+
+			if (strcmp(option_key, options[0]) == 0)
+				(*shortcut_list)[i].description = result;
+			else if (strcmp(option_key, options[1]) == 0)
+				(*shortcut_list)[i].trigger = result;
+
+			dbus_message_iter_next(&subarray_iter);
+
+		}
+
+		dbus_message_iter_next(&array_iter);
+
+	}
 
 	return 0;
 
@@ -446,12 +499,20 @@ int main() {
 	puts(session.session_id);
 	// while (1);
 
-	struct gs_Shortcut shortcut;
-	shortcut.name = "BANANA";
-	shortcut.description = "Fill the form here (no scam)";
-	shortcut.trigger = "LOGO+m";
+	struct gs_Shortcut shortcuts[] = {
+		{
+			.name = "BANANA",
+			.description = "Fill the form here (no scam)",
+			.trigger = "LOGO+M"
+		},
+		{
+			.name = "BANANA_2",
+			.description = "Fill the form here (no scam)",
+			.trigger = "LOGO+N"
+		}
+	};
 
-	printf("%d\n", gs_BindShortcuts(&session, &shortcut, 1, &error));
+	printf("%d\n", gs_BindShortcuts(&session, shortcuts, sizeof(shortcuts) / sizeof(struct gs_Shortcut), &error));
 
 	if (dbus_error_is_set(&error)) {
 		puts(error.message);
@@ -459,13 +520,18 @@ int main() {
 		return 0;
 	}
 
-	printf("%d\n", gs_ListShortcuts(&session, NULL, NULL, &error));
+	struct gs_Shortcut *shortcut_list;
+	int num;
+	printf("%d\n", gs_ListShortcuts(&session, &shortcut_list, &num, &error));
 
 	if (dbus_error_is_set(&error)) {
 		puts(error.message);
 		dbus_error_free(&error);
 		return 0;
 	}
+
+	for (int i = 0; i < num; i++)
+		printf("NAME:[%s] DESCR:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
 
 	gs_CloseSession(&session);
 
