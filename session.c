@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/random.h>
 #include <dbus/dbus.h>
 
@@ -15,9 +16,9 @@ struct gs_Session {
 };
 
 struct gs_Shortcut {
-	const char *name;
-	const char *description;
-	const char *trigger;
+	char *name;
+	char *description;
+	char *trigger;
 };
 
 enum gs_ErrorCode {
@@ -26,9 +27,7 @@ enum gs_ErrorCode {
 	MSG_CREATION_ERROR,
 	REPLY_ERROR,
 	BAD_REPLY,
-	SIGNAL_ERROR,
-	BAD_SIGNAL,
-	MATCH_RULE_ERROR
+	BAD_SIGNAL
 };
 
 int gs_CreateSession(struct gs_Session *session, const char *app_id, DBusError *error) {
@@ -36,7 +35,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, DBusError *
 	if (error != NULL)
 		dbus_error_init(error);
 
-	session->connection = dbus_bus_get(DBUS_BUS_SESSION, error);
+	session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
 	if (error != NULL && dbus_error_is_set(error)) {
 		dbus_connection_close(session->connection);
 		session->connection = NULL;
@@ -48,6 +47,8 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, DBusError *
 		session->connection = NULL;
 		return BAD_CONNECTION;
 	}
+
+	dbus_connection_set_exit_on_disconnect(session->connection, 0);
 
 	DBusMessage *message;
 	message = dbus_message_new_method_call(
@@ -132,30 +133,15 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, DBusError *
 
 	dbus_message_unref(reply);
 
-	char match_rule[256];
-	snprintf(match_rule, sizeof(match_rule), "type='signal',interface='org.freedesktop.portal.Request',path='%s'", request_id);
-
-	dbus_bus_add_match(session->connection, match_rule, error);
-	if (error != NULL && dbus_error_is_set(error)) {
-		dbus_connection_close(session->connection);
-		session->connection = NULL;
-		return MATCH_RULE_ERROR;
-	}
-
-	dbus_connection_flush(session->connection);
-
 	do {
-		dbus_connection_read_write(session->connection, 0);
-		reply = dbus_connection_pop_message(session->connection);
-	} while (reply == NULL || !dbus_message_is_signal(reply, "org.freedesktop.portal.Request", "Response"));
 
-	dbus_bus_remove_match(session->connection, match_rule, error);
-	if (error != NULL && dbus_error_is_set(error)) {
-		dbus_message_unref(reply);
-		dbus_connection_close(session->connection);
-		session->connection = NULL;
-		return MATCH_RULE_ERROR;
-	}
+		dbus_connection_read_write(session->connection, 1);
+		reply = dbus_connection_pop_message(session->connection);
+
+		if (reply != NULL && dbus_message_is_signal(reply, "org.freedesktop.portal.Request", "Response") && strcmp(dbus_message_get_path(reply), request_id) == 0)
+			break;
+
+	} while (1);
 
 	dbus_message_iter_init(reply, &args);
 
@@ -177,7 +163,10 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, DBusError *
 
 	dbus_message_iter_recurse(&dict_iter, &variant_iter);
 
-	dbus_message_iter_get_basic(&variant_iter, &session->session_id);
+	const char *session_id;
+	dbus_message_iter_get_basic(&variant_iter, &session_id);
+	session->session_id = malloc(strlen(session_id) + 1);
+	strcpy(session->session_id, session_id);
 
 	dbus_message_unref(reply);
 	
@@ -205,11 +194,15 @@ void gs_CloseSession(struct gs_Session *session) {
 
 		}
 
+		dbus_connection_close(session->connection);
 		dbus_connection_unref(session->connection);
 
 	}
 
-	session->session_id = NULL;
+	if (session->session_id != NULL) {
+		free(session->session_id);
+		session->session_id = NULL;
+	}
 
 }
 
@@ -224,6 +217,8 @@ int gs_BindShortcuts(struct gs_Session *session, struct gs_Shortcut *shortcut_li
 		PORTAL_INTERFACE,
 		"BindShortcuts"
 	);
+	if (message == NULL)
+		return MSG_CREATION_ERROR;
 
 	DBusMessageIter args;
 	DBusMessageIter array_iter;
@@ -335,6 +330,8 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 		PORTAL_INTERFACE,
 		"ListShortcuts"
 	);
+	if (message == NULL)
+		return MSG_CREATION_ERROR;
 
 	DBusMessageIter args;
 	DBusMessageIter array_iter;
@@ -385,25 +382,15 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 	dbus_message_unref(reply);
 
-	char match_rule[256];
-	snprintf(match_rule, sizeof(match_rule), "type='signal',interface='org.freedesktop.portal.Request',path='%s'", request_id);
-
-	dbus_bus_add_match(session->connection, match_rule, error);
-	if (error != NULL && dbus_error_is_set(error))
-		return MATCH_RULE_ERROR;
-
-	dbus_connection_flush(session->connection);
-
 	do {
-		dbus_connection_read_write(session->connection, 0);
-		reply = dbus_connection_pop_message(session->connection);
-	} while (reply == NULL || !dbus_message_is_signal(reply, "org.freedesktop.portal.Request", "Response"));
 
-	dbus_bus_remove_match(session->connection, match_rule, error);
-	if (error != NULL && dbus_error_is_set(error)) {
-		dbus_message_unref(reply);
-		return MATCH_RULE_ERROR;
-	}
+		dbus_connection_read_write(session->connection, 1);
+		reply = dbus_connection_pop_message(session->connection);
+
+		if (reply != NULL && dbus_message_is_signal(reply, "org.freedesktop.portal.Request", "Response") && strcmp(dbus_message_get_path(reply), request_id) == 0)
+			break;
+
+	} while (1);
 
 	dbus_message_iter_init(reply, &args);
 
@@ -484,20 +471,115 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 }
 
+int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64_t *timestamp, DBusError *error) {
+
+	if (error != NULL)
+		dbus_error_init(error);
+
+	DBusMessage *reply;
+
+	DBusMessageIter args;
+
+	do {
+
+		dbus_connection_read_write(session->connection, 1);
+		reply = dbus_connection_pop_message(session->connection);
+
+		if (reply == NULL) {
+			*shortcut_id = NULL;
+			if (timestamp)
+				timestamp = 0;
+			return 0;
+		}
+
+		if (dbus_message_is_signal(reply, "org.freedesktop.portal.GlobalShortcuts", "Activated")) {
+			dbus_message_iter_init(reply, &args);
+			const char *result;
+			dbus_message_iter_get_basic(&args, &result);
+			if (strcmp(result, session->session_id) == 0)
+				break;
+		}
+
+	} while (1);
+
+	dbus_message_iter_next(&args);
+	
+	dbus_message_iter_get_basic(&args, shortcut_id);
+
+	if (timestamp) {
+		
+		dbus_message_iter_next(&args);
+
+		dbus_message_iter_get_basic(&args, timestamp);
+
+	}
+
+	return 0;
+
+}
+
+int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint64_t *timestamp, DBusError *error) {
+
+	if (error != NULL)
+		dbus_error_init(error);
+
+	DBusMessage *reply;
+
+	DBusMessageIter args;
+
+	do {
+
+		dbus_connection_read_write(session->connection, 1);
+		reply = dbus_connection_pop_message(session->connection);
+
+		if (reply == NULL) {
+			*shortcut_id = NULL;
+			if (timestamp)
+				timestamp = 0;
+			return 0;
+		}
+
+		if (dbus_message_is_signal(reply, "org.freedesktop.portal.GlobalShortcuts", "Deactivated")) {
+			dbus_message_iter_init(reply, &args);
+			const char *result;
+			dbus_message_iter_get_basic(&args, &result);
+			if (strcmp(result, session->session_id) == 0)
+				break;
+		}
+
+	} while (1);
+
+	dbus_message_iter_next(&args);
+	
+	dbus_message_iter_get_basic(&args, shortcut_id);
+
+	if (timestamp) {
+		
+		dbus_message_iter_next(&args);
+
+		dbus_message_iter_get_basic(&args, timestamp);
+
+	}
+
+	return 0;
+
+}
+
+
+
 int main() {
 
 	struct gs_Session session;
 	DBusError error;
 	printf("%d\n", gs_CreateSession(&session, "GS_TEST", &error));
 
+	puts(session.session_id);
+
 	if (dbus_error_is_set(&error)) {
 		puts(error.message);
 		dbus_error_free(&error);
 		return 0;
 	}
-
-	puts(session.session_id);
-	// while (1);
 
 	struct gs_Shortcut shortcuts[] = {
 		{
@@ -512,26 +594,43 @@ int main() {
 		}
 	};
 
-	printf("%d\n", gs_BindShortcuts(&session, shortcuts, sizeof(shortcuts) / sizeof(struct gs_Shortcut), &error));
-
-	if (dbus_error_is_set(&error)) {
-		puts(error.message);
-		dbus_error_free(&error);
-		return 0;
-	}
+	// printf("%d\n", gs_BindShortcuts(&session, shortcuts, sizeof(shortcuts) / sizeof(struct gs_Shortcut), &error));
 
 	struct gs_Shortcut *shortcut_list;
 	int num;
-	printf("%d\n", gs_ListShortcuts(&session, &shortcut_list, &num, &error));
 
-	if (dbus_error_is_set(&error)) {
-		puts(error.message);
-		dbus_error_free(&error);
-		return 0;
+	/*for (int z = 0; z < 10; z++) {
+		printf("%d\n", z);
+		getchar();
+
+		gs_ListShortcuts(&session, &shortcut_list, &num, &error);
+	
+		if (dbus_error_is_set(&error)) {
+			puts(error.message);
+			dbus_error_free(&error);
+			return 0;
+		}
+		
+		for (int i = 0; i < num; i++)
+			printf("NAME:[%s] DESC:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
+
+	}*/
+
+	const char *name = NULL;
+
+	while (1) {
+
+		gs_GetDeactivated(&session, &name, NULL, &error);
+
+		if (name != NULL)
+			printf("Deactivated: %s\n", name);
+
+		gs_GetActivated(&session, &name, NULL, &error);
+
+		if (name != NULL)
+			printf("Activated: %s\n", name);
+
 	}
-
-	for (int i = 0; i < num; i++)
-		printf("NAME:[%s] DESCR:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
 
 	gs_CloseSession(&session);
 
