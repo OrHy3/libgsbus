@@ -17,9 +17,9 @@ struct gs_Session {
 };
 
 struct gs_Shortcut {
-	char *name;
-	char *description;
-	char *trigger;
+	char name[256];
+	char description[256];
+	char trigger[256];
 };
 
 enum gs_ErrorCode {
@@ -550,15 +550,15 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 	for (int i = 0; i < *num; i++) {
 
-		(*shortcut_list)[i].description = NULL;
-		(*shortcut_list)[i].trigger = NULL;
+		(*shortcut_list)[i].description[0] = '\0';
+		(*shortcut_list)[i].trigger[0] = '\0';
 
 		const char *result;
 
 		dbus_message_iter_recurse(&array_iter, &struct_iter);
 
 		dbus_message_iter_get_basic(&struct_iter, &result);
-		(*shortcut_list)[i].name = result;
+		strncpy((*shortcut_list)[i].name, result, sizeof((*shortcut_list)[i].name));
 
 		dbus_message_iter_next(&struct_iter);
 
@@ -583,9 +583,9 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 			dbus_message_iter_get_basic(&variant_iter, &result);
 
 			if (strcmp(option_key, options[0]) == 0)
-				(*shortcut_list)[i].description = result;
+				strncpy((*shortcut_list)[i].description, result, sizeof((*shortcut_list)[i].description));
 			else if (strcmp(option_key, options[1]) == 0)
-				(*shortcut_list)[i].trigger = result;
+				strncpy((*shortcut_list)[i].trigger, result, sizeof((*shortcut_list)[i].trigger));
 
 			dbus_message_iter_next(&subarray_iter);
 
@@ -620,7 +620,7 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 		if (reply == NULL) {
 			*shortcut_id = NULL;
 			if (timestamp)
-				timestamp = 0;
+				*timestamp = 0;
 			__gs_release_queue(session);
 			return 0;
 		}
@@ -680,7 +680,7 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 		if (reply == NULL) {
 			*shortcut_id = NULL;
 			if (timestamp)
-				timestamp = 0;
+				*timestamp = 0;
 			__gs_release_queue(session);
 			return 0;
 		}
@@ -712,6 +712,118 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 		dbus_message_iter_next(&args);
 
 		dbus_message_iter_get_basic(&args, timestamp);
+
+	}
+
+	return 0;
+
+}
+
+int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shortcut_list, int *num, void *error) {
+
+	if (error != NULL)
+		dbus_error_init(error);
+
+	DBusMessage *reply;
+
+	__gs_claim_queue(session);
+	struct __gs_Msg *iter = ((struct __gs_Queue*)session->_queue)->top;
+
+	do {
+
+		if (iter == NULL) {
+			dbus_connection_read_write(session->connection, 1);
+			reply = dbus_connection_pop_message(session->connection);
+		} else
+			reply = iter->message;
+
+		if (reply == NULL) {
+			*shortcut_list = NULL;
+			*num = 0;
+			__gs_release_queue(session);
+			return 0;
+		}
+
+		if (__gs_is_signal_relevant(session, reply))
+			if (dbus_message_is_signal(reply, "org.freedesktop.portal.GlobalShortcuts", "ShortcutsChanged")) {
+				if (iter != NULL)
+					__gs_queue_pop_msg(session, iter);
+				break;
+			} else if (reply != NULL && iter == NULL)
+				__gs_queue_push_msg(session, reply);
+
+		if (iter)
+			iter = iter->next;
+
+	} while (1);
+
+	__gs_release_queue(session);
+
+	DBusMessageIter args;
+	DBusMessageIter array_iter;
+	DBusMessageIter struct_iter;
+	DBusMessageIter subarray_iter;
+	DBusMessageIter dict_iter;
+	DBusMessageIter variant_iter;
+
+	dbus_message_iter_init(reply, &args);
+
+	dbus_message_iter_next(&args);
+
+	*shortcut_list = NULL;
+	*num = dbus_message_iter_get_element_count(&args);
+
+	if (*num == 0)
+		return 0;
+
+	*shortcut_list = calloc(*num, sizeof(struct gs_Shortcut));
+
+	dbus_message_iter_recurse(&args, &array_iter);
+
+	for (int i = 0; i < *num; i++) {
+
+		(*shortcut_list)[i].description[0] = '\0';
+		(*shortcut_list)[i].trigger[0] = '\0';
+
+		const char *result;
+
+		dbus_message_iter_recurse(&array_iter, &struct_iter);
+
+		dbus_message_iter_get_basic(&struct_iter, &result);
+		strncpy((*shortcut_list)[i].name, result, sizeof((*shortcut_list)[i].name));
+
+		dbus_message_iter_next(&struct_iter);
+
+		dbus_message_iter_recurse(&struct_iter, &subarray_iter);
+
+		const char *options[] = {
+			"description",
+			"trigger_description"
+		};
+		const char *option_key;
+
+		for (int z = 0; z < sizeof(options) / sizeof(const char*); z++) {
+
+			dbus_message_iter_recurse(&subarray_iter, &dict_iter);
+
+			dbus_message_iter_get_basic(&dict_iter, &option_key);
+
+			dbus_message_iter_next(&dict_iter);
+
+			dbus_message_iter_recurse(&dict_iter, &variant_iter);
+
+			dbus_message_iter_get_basic(&variant_iter, &result);
+
+			if (strcmp(option_key, options[0]) == 0)
+				strncpy((*shortcut_list)[i].description, result, sizeof((*shortcut_list)[i].description));
+			else if (strcmp(option_key, options[1]) == 0)
+				strncpy((*shortcut_list)[i].trigger, result, sizeof((*shortcut_list)[i].trigger));
+
+			dbus_message_iter_next(&subarray_iter);
+
+		}
+
+		dbus_message_iter_next(&array_iter);
 
 	}
 
@@ -757,34 +869,42 @@ int main() {
 		printf("%d\n", z);
 		getchar();
 
-		*/gs_ListShortcuts(&session, &shortcut_list, &num, &error);
-
-		puts("Good point");
-		printf("%d %d\n", queue->top == queue->bottom, queue->top == NULL);
+		gs_ListShortcuts(&session, &shortcut_list, &num, &error);
 
 		if (dbus_error_is_set(&error)) {
 			puts(error.message);
 			dbus_error_free(&error);
-		}/*
-		
-		for (int i = 0; i < num; i++)
-			printf("NAME:[%s] DESC:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
+		}*/
+		while (1) {	
 
-	}*/
+			break;
+
+			gs_GetShortcutsChanged(&session, &shortcut_list, &num, &error);
+
+			for (int i = 0; i < num; i++)
+				printf("NAME:[%s] DESC:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
+
+			if (num > 0)
+				break;
+			
+		}
+
+	//}*/
 
 	const char *name = NULL;
+	uint64_t timestamp;
 
 	while (1) {
 
-		gs_GetDeactivated(&session, &name, NULL, &error);
+		gs_GetDeactivated(&session, &name, &timestamp, &error);
 
 		if (name != NULL)
-			printf("Deactivated: %s\n", name);
+			printf("Deactivated: %s Timestamp: %d\n", name, timestamp);
 
-		gs_GetActivated(&session, &name, NULL, &error);
+		gs_GetActivated(&session, &name, &timestamp, &error);
 
 		if (name != NULL)
-			printf("Activated: %s\n", name);
+			printf("Activated: %s Timestamp: %d\n", name, timestamp);
 
 	}
 
