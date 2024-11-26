@@ -1,2 +1,2 @@
 # libgsbus
-A C implementation of DBus GlobalShortcuts
+A C implementation of D-Bus GlobalShortcuts

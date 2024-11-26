@@ -539,7 +539,8 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 		dbus_message_iter_recurse(&array_iter, &struct_iter);
 
 		dbus_message_iter_get_basic(&struct_iter, &result);
-		(*shortcut_list)[i].name = result;
+		(*shortcut_list)[i].name = malloc(strlen(result) + 1);
+		strcpy((*shortcut_list)[i].name, result);
 
 		dbus_message_iter_next(&struct_iter);
 
@@ -563,10 +564,13 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 			dbus_message_iter_get_basic(&variant_iter, &result);
 
-			if (strcmp(option_key, options[0]) == 0)
-				(*shortcut_list)[i].description = result;
-			else if (strcmp(option_key, options[1]) == 0)
-				(*shortcut_list)[i].trigger = result;
+			if (strcmp(option_key, options[0]) == 0) {
+				(*shortcut_list)[i].description = malloc(strlen(result) + 1);
+				strcpy((*shortcut_list)[i].description, result);
+			} else if (strcmp(option_key, options[1]) == 0) {
+				(*shortcut_list)[i].trigger = malloc(strlen(result + 1));
+				strcpy((*shortcut_list)[i].trigger, result);
+			}
 
 			dbus_message_iter_next(&subarray_iter);
 
@@ -628,7 +632,10 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 
 	dbus_message_iter_next(&args);
 	
-	dbus_message_iter_get_basic(&args, shortcut_id);
+	const char *result;
+	dbus_message_iter_get_basic(&args, &result);
+	*shortcut_id = malloc(strlen(result) + 1);
+	strcpy(*shortcut_id, result);
 
 	if (timestamp) {
 		
@@ -693,7 +700,10 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 
 	dbus_message_iter_next(&args);
 	
-	dbus_message_iter_get_basic(&args, shortcut_id);
+	const char *result;
+	dbus_message_iter_get_basic(&args, &result);
+	*shortcut_id = malloc(strlen(result) + 1);
+	strcpy(*shortcut_id, result);
 
 	if (timestamp) {
 		
@@ -783,7 +793,8 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 		dbus_message_iter_recurse(&array_iter, &struct_iter);
 
 		dbus_message_iter_get_basic(&struct_iter, &result);
-		(*shortcut_list)[i].name = result;
+		(*shortcut_list)[i].name = malloc(strlen(result) + 1);
+		strcpy((*shortcut_list)[i].name, result);
 
 		dbus_message_iter_next(&struct_iter);
 
@@ -807,10 +818,13 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 
 			dbus_message_iter_get_basic(&variant_iter, &result);
 
-			if (strcmp(option_key, options[0]) == 0)
-				(*shortcut_list)[i].description = result;
-			else if (strcmp(option_key, options[1]) == 0)
-				(*shortcut_list)[i].trigger = result;
+			if (strcmp(option_key, options[0]) == 0) {
+				(*shortcut_list)[i].description = malloc(strlen(result) + 1);
+				strcpy((*shortcut_list)[i].description, result);
+			} else if (strcmp(option_key, options[1]) == 0) {
+				(*shortcut_list)[i].trigger = malloc(strlen(result + 1));
+				strcpy((*shortcut_list)[i].trigger, result);
+			}
 
 			dbus_message_iter_next(&subarray_iter);
 
