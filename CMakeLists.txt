@@ -14,6 +14,8 @@ include_directories(${DBUS_INCLUDE_DIRS} include)
 
 add_library(gsbus ${SOURCES})
 
+set(CMAKE_INSTALL_PREFIX /usr)
+
 install(TARGETS gsbus
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
