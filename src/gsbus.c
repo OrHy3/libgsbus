@@ -126,11 +126,11 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	if (error != NULL && dbus_error_is_set(error)) {
 		dbus_connection_close((DBusConnection*)session->connection);
 		session->connection = NULL;
-		return CONNECTION_ERROR;
+		return GS_CONNECTION_ERROR;
 	}
 
 	if ((DBusConnection*)session->connection == NULL)
-		return BAD_CONNECTION;
+		return GS_BAD_CONNECTION;
 
 	dbus_connection_set_exit_on_disconnect((DBusConnection*)session->connection, 0);
 
@@ -144,7 +144,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	if (message == NULL) {
 		dbus_connection_close((DBusConnection*)session->connection);
 		session->connection = NULL;
-		return MSG_CREATION_ERROR;
+		return GS_MSG_CREATION_ERROR;
 	}
 
 	unsigned random_id;
@@ -202,13 +202,13 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 			dbus_message_unref(reply);
 		dbus_connection_unref((DBusConnection*)session->connection);
 		session->connection = NULL;
-		return REPLY_ERROR;
+		return GS_REPLY_ERROR;
 	}
 
 	if (reply == NULL) {
 		dbus_connection_unref((DBusConnection*)session->connection);
 		session->connection = NULL;
-		return BAD_REPLY;
+		return GS_BAD_REPLY;
 	}
 
 	dbus_message_iter_init(reply, &args);
@@ -236,7 +236,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 		dbus_message_unref(reply);
 		dbus_connection_close((DBusConnection*)session->connection);
 		session->connection = NULL;
-		return BAD_SIGNAL;
+		return GS_BAD_SIGNAL;
 	}
 
 	dbus_message_iter_next(&args);
@@ -313,7 +313,7 @@ int gs_BindShortcuts(struct gs_Session *session, struct gs_Shortcut *shortcut_li
 		"BindShortcuts"
 	);
 	if (message == NULL)
-		return MSG_CREATION_ERROR;
+		return GS_MSG_CREATION_ERROR;
 
 	DBusMessageIter args;
 	DBusMessageIter array_iter;
@@ -400,11 +400,11 @@ int gs_BindShortcuts(struct gs_Session *session, struct gs_Shortcut *shortcut_li
 	if (error != NULL && dbus_error_is_set(error)) {
 		if (reply)
 			dbus_message_unref(reply);
-		return REPLY_ERROR;
+		return GS_REPLY_ERROR;
 	}
 
 	if (reply == NULL)
-		return BAD_REPLY;
+		return GS_BAD_REPLY;
 
 	dbus_message_unref(reply);
 
@@ -424,7 +424,7 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 		"ListShortcuts"
 	);
 	if (message == NULL)
-		return MSG_CREATION_ERROR;
+		return GS_MSG_CREATION_ERROR;
 
 	DBusMessageIter args;
 	DBusMessageIter array_iter;
@@ -462,11 +462,11 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 	if (error != NULL && dbus_error_is_set(error)) {
 		if (reply)
 			dbus_message_unref(reply);
-		return REPLY_ERROR;
+		return GS_REPLY_ERROR;
 	}
 
 	if (reply == NULL)
-		return BAD_REPLY;
+		return GS_BAD_REPLY;
 
 	dbus_message_iter_init(reply, &args);
 
@@ -506,7 +506,7 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 	dbus_message_iter_get_basic(&args, &status);
 	if (status != 0) {
 		dbus_message_unref(reply);
-		return BAD_SIGNAL;
+		return GS_BAD_SIGNAL;
 	}
 
 	dbus_message_iter_next(&args);

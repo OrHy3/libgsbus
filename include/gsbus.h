@@ -47,12 +47,12 @@ struct gs_Shortcut {
  *
  */
 enum gs_ErrorCode {
-	CONNECTION_ERROR = 1, // error creating the connection, D-Bus error retrieved
-	BAD_CONNECTION,       // error creating the connection, no error retrieved
-	MSG_CREATION_ERROR,   // error creating the message, no error retrieved
-	REPLY_ERROR,          // error in the retrieved reply, D-Bus error retrieved
-	BAD_REPLY,            // error in the retrieved reply, no error retrieved
-	BAD_SIGNAL            // error in the retrieved Response (got non-zero value), no error retrieved
+	GS_CONNECTION_ERROR = 1, // error creating the connection, D-Bus error retrieved
+	GS_BAD_CONNECTION,       // error creating the connection, no error retrieved
+	GS_MSG_CREATION_ERROR,   // error creating the message, no error retrieved
+	GS_REPLY_ERROR,          // error in the retrieved reply, D-Bus error retrieved
+	GS_BAD_REPLY,            // error in the retrieved reply, no error retrieved
+	GS_BAD_SIGNAL            // error in the retrieved Response (got non-zero value), no error retrieved
 };
 
 

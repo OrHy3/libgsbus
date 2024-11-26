@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(libgsbus VERSION 0.2)
+project(libgsbus VERSION 0.3)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
