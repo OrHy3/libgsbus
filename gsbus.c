@@ -576,6 +576,8 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 	}
 
+	dbus_message_unref(reply);
+
 	return 0;
 
 }
@@ -639,6 +641,8 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 
 	}
 
+	dbus_message_unref(reply);
+
 	return 0;
 
 }
@@ -701,6 +705,8 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 		*timestamp = result;
 
 	}
+
+	dbus_message_unref(reply);
 
 	return 0;
 
@@ -813,6 +819,8 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 		dbus_message_iter_next(&array_iter);
 
 	}
+
+	dbus_message_unref(reply);
 
 	return 0;
 
