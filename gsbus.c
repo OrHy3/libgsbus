@@ -126,7 +126,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
 	if (error != NULL && dbus_error_is_set(error)) {
 		dbus_connection_close((DBusConnection*)session->connection);
-		(DBusConnection*)session->connection = NULL;
+		session->connection = NULL;
 		return CONNECTION_ERROR;
 	}
 
@@ -144,7 +144,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	);
 	if (message == NULL) {
 		dbus_connection_close((DBusConnection*)session->connection);
-		(DBusConnection*)session->connection = NULL;
+		session->connection = NULL;
 		return MSG_CREATION_ERROR;
 	}
 
@@ -202,13 +202,13 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 		if (reply)
 			dbus_message_unref(reply);
 		dbus_connection_unref((DBusConnection*)session->connection);
-		(DBusConnection*)session->connection = NULL;
+		session->connection = NULL;
 		return REPLY_ERROR;
 	}
 
 	if (reply == NULL) {
 		dbus_connection_unref((DBusConnection*)session->connection);
-		(DBusConnection*)session->connection = NULL;
+		session->connection = NULL;
 		return BAD_REPLY;
 	}
 
@@ -236,7 +236,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	if (status != 0) {
 		dbus_message_unref(reply);
 		dbus_connection_close((DBusConnection*)session->connection);
-		(DBusConnection*)session->connection = NULL;
+		session->connection = NULL;
 		return BAD_SIGNAL;
 	}
 
