@@ -632,7 +632,7 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 		
 		dbus_message_iter_next(&args);
 
-		uint_t result;
+		uint64_t result;
 		dbus_message_iter_get_basic(&args, &result);
 
 		*timestamp = result;
