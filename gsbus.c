@@ -123,7 +123,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	if (error != NULL)
 		dbus_error_init(error);
 
-	(DBusConnection*)session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
+	session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
 	if (error != NULL && dbus_error_is_set(error)) {
 		dbus_connection_close((DBusConnection*)session->connection);
 		(DBusConnection*)session->connection = NULL;
