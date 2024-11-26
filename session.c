@@ -17,9 +17,9 @@ struct gs_Session {
 };
 
 struct gs_Shortcut {
-	char name[256];
-	char description[256];
-	char trigger[256];
+	char *name;
+	char *description;
+	char *trigger;
 };
 
 enum gs_ErrorCode {
