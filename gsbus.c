@@ -123,17 +123,17 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	if (error != NULL)
 		dbus_error_init(error);
 
-	session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
+	(DBusConnection*)session->connection = dbus_bus_get_private(DBUS_BUS_SESSION, error);
 	if (error != NULL && dbus_error_is_set(error)) {
-		dbus_connection_close(session->connection);
-		session->connection = NULL;
+		dbus_connection_close((DBusConnection*)session->connection);
+		(DBusConnection*)session->connection = NULL;
 		return CONNECTION_ERROR;
 	}
 
-	if (session->connection == NULL)
+	if ((DBusConnection*)session->connection == NULL)
 		return BAD_CONNECTION;
 
-	dbus_connection_set_exit_on_disconnect(session->connection, 0);
+	dbus_connection_set_exit_on_disconnect((DBusConnection*)session->connection, 0);
 
 	DBusMessage *message;
 	message = dbus_message_new_method_call(
@@ -143,8 +143,8 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 		"CreateSession"
 	);
 	if (message == NULL) {
-		dbus_connection_close(session->connection);
-		session->connection = NULL;
+		dbus_connection_close((DBusConnection*)session->connection);
+		(DBusConnection*)session->connection = NULL;
 		return MSG_CREATION_ERROR;
 	}
 
@@ -196,19 +196,19 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	dbus_message_iter_close_container(&args, &array_iter);
 
 	DBusMessage *reply;
-	reply = dbus_connection_send_with_reply_and_block(session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
+	reply = dbus_connection_send_with_reply_and_block((DBusConnection*)session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
 	dbus_message_unref(message);
 	if (error != NULL && dbus_error_is_set(error)) {
 		if (reply)
 			dbus_message_unref(reply);
-		dbus_connection_unref(session->connection);
-		session->connection = NULL;
+		dbus_connection_unref((DBusConnection*)session->connection);
+		(DBusConnection*)session->connection = NULL;
 		return REPLY_ERROR;
 	}
 
 	if (reply == NULL) {
-		dbus_connection_unref(session->connection);
-		session->connection = NULL;
+		dbus_connection_unref((DBusConnection*)session->connection);
+		(DBusConnection*)session->connection = NULL;
 		return BAD_REPLY;
 	}
 
@@ -221,8 +221,8 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 
 	do {
 
-		dbus_connection_read_write(session->connection, 1);
-		reply = dbus_connection_pop_message(session->connection);
+		dbus_connection_read_write((DBusConnection*)session->connection, 1);
+		reply = dbus_connection_pop_message((DBusConnection*)session->connection);
 
 		if (reply != NULL && dbus_message_is_signal(reply, "org.freedesktop.portal.Request", "Response") && strcmp(dbus_message_get_path(reply), request_id) == 0)
 			break;
@@ -235,8 +235,8 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 	dbus_message_iter_get_basic(&args, &status);
 	if (status != 0) {
 		dbus_message_unref(reply);
-		dbus_connection_close(session->connection);
-		session->connection = NULL;
+		dbus_connection_close((DBusConnection*)session->connection);
+		(DBusConnection*)session->connection = NULL;
 		return BAD_SIGNAL;
 	}
 
@@ -272,9 +272,9 @@ void gs_CloseSession(struct gs_Session *session) {
 	if (session == NULL)
 		return;
 
-	if (session->connection && dbus_connection_get_is_connected(session->connection)) {
+	if ((DBusConnection*)session->connection && dbus_connection_get_is_connected(session->connection)) {
 
-		if (session->connection) {
+		if ((DBusConnection*)session->connection) {
 
 			DBusMessage *message = dbus_message_new_method_call(
 				PORTAL_TARGET,
@@ -283,12 +283,12 @@ void gs_CloseSession(struct gs_Session *session) {
 				"Close"
 			);
 
-			dbus_connection_send(session->connection, message, NULL);
+			dbus_connection_send((DBusConnection*)session->connection, message, NULL);
 
 		}
 
-		dbus_connection_close(session->connection);
-		dbus_connection_unref(session->connection);
+		dbus_connection_close((DBusConnection*)session->connection);
+		dbus_connection_unref((DBusConnection*)session->connection);
 
 	}
 
@@ -396,7 +396,7 @@ int gs_BindShortcuts(struct gs_Session *session, struct gs_Shortcut *shortcut_li
 	dbus_message_iter_close_container(&array_iter, &dict_iter);
 	dbus_message_iter_close_container(&args, &array_iter);
 
-	DBusMessage *reply = dbus_connection_send_with_reply_and_block(session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
+	DBusMessage *reply = dbus_connection_send_with_reply_and_block((DBusConnection*)session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
 	dbus_message_unref(message);
 	if (error != NULL && dbus_error_is_set(error)) {
 		if (reply)
@@ -458,7 +458,7 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 	dbus_message_iter_close_container(&array_iter, &dict_iter);
 	dbus_message_iter_close_container(&args, &array_iter);
 
-	DBusMessage *reply = dbus_connection_send_with_reply_and_block(session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
+	DBusMessage *reply = dbus_connection_send_with_reply_and_block((DBusConnection*)session->connection, message, DBUS_TIMEOUT_USE_DEFAULT, error);
 	dbus_message_unref(message);
 	if (error != NULL && dbus_error_is_set(error)) {
 		if (reply)
@@ -482,8 +482,8 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 	do {
 
 		if (iter == NULL) {
-			dbus_connection_read_write(session->connection, 1);
-			reply = dbus_connection_pop_message(session->connection);
+			dbus_connection_read_write((DBusConnection*)session->connection, 1);
+			reply = dbus_connection_pop_message((DBusConnection*)session->connection);
 		} else
 			reply = iter->message;
 
@@ -593,8 +593,8 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 	do {
 
 		if (iter == NULL) {
-			dbus_connection_read_write(session->connection, 1);
-			reply = dbus_connection_pop_message(session->connection);
+			dbus_connection_read_write((DBusConnection*)session->connection, 1);
+			reply = dbus_connection_pop_message((DBusConnection*)session->connection);
 		} else
 			reply = iter->message;
 
@@ -656,8 +656,8 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 	do {
 
 		if (iter == NULL) {
-			dbus_connection_read_write(session->connection, 1);
-			reply = dbus_connection_pop_message(session->connection);
+			dbus_connection_read_write((DBusConnection*)session->connection, 1);
+			reply = dbus_connection_pop_message((DBusConnection*)session->connection);
 		} else
 			reply = iter->message;
 
@@ -719,8 +719,8 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 	do {
 
 		if (iter == NULL) {
-			dbus_connection_read_write(session->connection, 1);
-			reply = dbus_connection_pop_message(session->connection);
+			dbus_connection_read_write((DBusConnection*)session->connection, 1);
+			reply = dbus_connection_pop_message((DBusConnection*)session->connection);
 		} else
 			reply = iter->message;
 

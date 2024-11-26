@@ -2,7 +2,7 @@
 #define _LIB_GS_BUS_INCLUDED
 
 struct gs_Session {
-	DBusConnection *connection;
+	void *connection;
 	const char *session_id;
 	void *_queue;
 };
