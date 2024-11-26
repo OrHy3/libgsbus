@@ -531,15 +531,15 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 	for (int i = 0; i < *num; i++) {
 
-		(*shortcut_list)[i].description[0] = '\0';
-		(*shortcut_list)[i].trigger[0] = '\0';
+		(*shortcut_list)[i].description = NULL;
+		(*shortcut_list)[i].trigger = NULL;
 
 		const char *result;
 
 		dbus_message_iter_recurse(&array_iter, &struct_iter);
 
 		dbus_message_iter_get_basic(&struct_iter, &result);
-		strncpy((*shortcut_list)[i].name, result, sizeof((*shortcut_list)[i].name));
+		(*shortcut_list)[i].name = result;
 
 		dbus_message_iter_next(&struct_iter);
 
@@ -564,9 +564,9 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 			dbus_message_iter_get_basic(&variant_iter, &result);
 
 			if (strcmp(option_key, options[0]) == 0)
-				strncpy((*shortcut_list)[i].description, result, sizeof((*shortcut_list)[i].description));
+				(*shortcut_list)[i].description = result;
 			else if (strcmp(option_key, options[1]) == 0)
-				strncpy((*shortcut_list)[i].trigger, result, sizeof((*shortcut_list)[i].trigger));
+				(*shortcut_list)[i].trigger = result;
 
 			dbus_message_iter_next(&subarray_iter);
 
@@ -769,15 +769,15 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 
 	for (int i = 0; i < *num; i++) {
 
-		(*shortcut_list)[i].description[0] = '\0';
-		(*shortcut_list)[i].trigger[0] = '\0';
+		(*shortcut_list)[i].description = NULL;
+		(*shortcut_list)[i].trigger = NULL;
 
 		const char *result;
 
 		dbus_message_iter_recurse(&array_iter, &struct_iter);
 
 		dbus_message_iter_get_basic(&struct_iter, &result);
-		strncpy((*shortcut_list)[i].name, result, sizeof((*shortcut_list)[i].name));
+		(*shortcut_list)[i].name = result;
 
 		dbus_message_iter_next(&struct_iter);
 
@@ -802,9 +802,9 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 			dbus_message_iter_get_basic(&variant_iter, &result);
 
 			if (strcmp(option_key, options[0]) == 0)
-				strncpy((*shortcut_list)[i].description, result, sizeof((*shortcut_list)[i].description));
+				(*shortcut_list)[i].description = result;
 			else if (strcmp(option_key, options[1]) == 0)
-				strncpy((*shortcut_list)[i].trigger, result, sizeof((*shortcut_list)[i].trigger));
+				(*shortcut_list)[i].trigger = result;
 
 			dbus_message_iter_next(&subarray_iter);
 
