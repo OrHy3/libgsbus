@@ -632,7 +632,10 @@ int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64
 		
 		dbus_message_iter_next(&args);
 
-		dbus_message_iter_get_basic(&args, timestamp);
+		uint_t result;
+		dbus_message_iter_get_basic(&args, &result);
+
+		*timestamp = result;
 
 	}
 
@@ -692,7 +695,10 @@ int gs_GetDeactivated(struct gs_Session *session, const char **shortcut_id, uint
 		
 		dbus_message_iter_next(&args);
 
-		dbus_message_iter_get_basic(&args, timestamp);
+		uint64_t result;
+		dbus_message_iter_get_basic(&args, &result);
+
+		*timestamp = result;
 
 	}
 
