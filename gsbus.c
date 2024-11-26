@@ -6,30 +6,11 @@
 #include <sys/random.h>
 #include <dbus/dbus.h>
 
+#include "gsbus.h"
+
 #define PORTAL_TARGET "org.freedesktop.portal.Desktop"
 #define PORTAL_OBJECT "/org/freedesktop/portal/desktop"
 #define PORTAL_INTERFACE "org.freedesktop.portal.GlobalShortcuts"
-
-struct gs_Session {
-	DBusConnection *connection;
-	const char *session_id;
-	void *_queue;
-};
-
-struct gs_Shortcut {
-	char *name;
-	char *description;
-	char *trigger;
-};
-
-enum gs_ErrorCode {
-	CONNECTION_ERROR = 1,
-	BAD_CONNECTION,
-	MSG_CREATION_ERROR,
-	REPLY_ERROR,
-	BAD_REPLY,
-	BAD_SIGNAL
-};
 
 struct __gs_Msg {
 	DBusMessage *message;
@@ -828,86 +809,5 @@ int gs_GetShortcutsChanged(struct gs_Session *session, struct gs_Shortcut **shor
 	}
 
 	return 0;
-
-}
-
-int main() {
-
-	struct gs_Session session;
-	DBusError error;
-	printf("%d\n", gs_CreateSession(&session, "GS_TEST", &error));
-
-	struct __gs_Queue *queue = (struct __gs_Queue*)session._queue;
-
-	puts(session.session_id);
-
-	if (dbus_error_is_set(&error)) {
-		puts(error.message);
-		dbus_error_free(&error);
-		return 0;
-	}
-
-	struct gs_Shortcut shortcuts[] = {
-		{
-			.name = "BANANA",
-			.description = "Fill the form here (no scam)",
-			.trigger = "LOGO+M"
-		},
-		{
-			.name = "BANANA_2",
-			.description = "Fill the form here (no scam)",
-			.trigger = "LOGO+N"
-		}
-	};
-
-	// printf("%d\n", gs_BindShortcuts(&session, shortcuts, sizeof(shortcuts) / sizeof(struct gs_Shortcut), &error));
-
-	struct gs_Shortcut *shortcut_list;
-	int num;
-
-	/*for (int z = 0; z < 10; z++) {
-		printf("%d\n", z);
-		getchar();
-
-		gs_ListShortcuts(&session, &shortcut_list, &num, &error);
-
-		if (dbus_error_is_set(&error)) {
-			puts(error.message);
-			dbus_error_free(&error);
-		}*/
-		while (1) {	
-
-			break;
-
-			gs_GetShortcutsChanged(&session, &shortcut_list, &num, &error);
-
-			for (int i = 0; i < num; i++)
-				printf("NAME:[%s] DESC:[%s] TRIG:[%s]\n", shortcut_list[i].name, shortcut_list[i].description, shortcut_list[i].trigger);
-
-			if (num > 0)
-				break;
-			
-		}
-
-	//}*/
-
-	const char *name = NULL;
-	uint64_t timestamp;
-
-	while (1) {
-
-		gs_GetDeactivated(&session, &name, &timestamp, &error);
-
-		if (name != NULL)
-			printf("Deactivated: %s Timestamp: %d\n", name, timestamp);
-
-		gs_GetActivated(&session, &name, &timestamp, &error);
-
-		if (name != NULL)
-			printf("Activated: %s Timestamp: %d\n", name, timestamp);
-
-	}
-
-	gs_CloseSession(&session);
 
 }
