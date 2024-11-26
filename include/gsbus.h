@@ -1,6 +1,9 @@
 #ifndef _LIB_GS_BUS_INCLUDED
 #define _LIB_GS_BUS_INCLUDED
 
+#include <stdint.h>
+
+
 /*
  * Structure to manage the portal connection
  *
