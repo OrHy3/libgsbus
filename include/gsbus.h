@@ -78,11 +78,8 @@ void gs_ClearQueue(struct gs_Session *session);
 /*
  * Initializes a new gs_Session
  *
- *      app_id will be used to determine the org.freedesktop.portal.Session path,
- *      which keeps GlobalShortcuts across different sessions.
- *
  */
-int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error);
+int gs_CreateSession(struct gs_Session *session, void *error);
 
 
 

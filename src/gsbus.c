@@ -117,7 +117,7 @@ void gs_ClearQueue(struct gs_Session *session) {
 		__gs_queue_pop_msg(session, queue->top);
 }
 
-int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error) {
+int gs_CreateSession(struct gs_Session *session, void *error) {
 
 	if (error != NULL)
 		dbus_error_init(error);
@@ -185,10 +185,7 @@ int gs_CreateSession(struct gs_Session *session, const char *app_id, void *error
 
 	dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_VARIANT, "s", &variant_iter);
 
-	if (app_id == NULL)
-		dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &token_string_ptr);
-	else
-		dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &app_id);
+	dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &token_string_ptr);
 
 	dbus_message_iter_close_container(&dict_iter, &variant_iter);
 	dbus_message_iter_close_container(&array_iter, &dict_iter);

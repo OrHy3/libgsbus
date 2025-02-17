@@ -42,7 +42,7 @@ int main() {
 	
 	struct gs_Session session;
 
-	gs_CreateSession(&session, "ExampleAppName", NULL);
+	gs_CreateSession(&session, NULL);
 
 	struct gs_Shortcut shortcuts[] = {
 		{
@@ -69,7 +69,7 @@ int main() {
 	struct gs_Session session;
 
 	dbus_error_init(&error);
-	gs_CreateSession(&session, "ExampleAppName", &error);
+	gs_CreateSession(&session, &error);
 
 	if (dbus_error_is_set(&error))
 		printf("D-Bus error message: %s\n", error.message);
@@ -88,7 +88,7 @@ int main() {
 
 	struct gs_Session session;
 
-	gs_CreateSession(&session, "ExampleAppName", NULL);
+	gs_CreateSession(&session, NULL);
 
 	struct gs_Shortcut *shortcut_list;
 	int num = 0;
