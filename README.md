@@ -28,8 +28,6 @@ sudo make install
 ```
 
 # Usage
-As previously said, `libgsbus` has an internal queue in every `gs_Session` object. It has some basic mutex-like functioning, but I won't recommend it to use a single `gs_Session` over many threads, I'd rather suggest you to create multiple separate objects.
-
 Every program has to link against both `gsbus` and `dbus-1`.
 
 The following code shows how to open a session and bind a shortcut.

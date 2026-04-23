@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/random.h>
 #include <dbus/dbus.h>
+#include <pthread.h>
 
 #include "gsbus.h"
 
@@ -20,9 +21,7 @@ struct __gs_Msg {
 struct __gs_Queue {
 	struct __gs_Msg *top;
 	struct __gs_Msg *bottom;
-	int access_count;
-	void *unique_addr;
-	int unique_rand;
+	pthread_mutex_t mtx;
 };
 
 void __gs_claim_queue(struct gs_Session *session) {
@@ -32,29 +31,13 @@ void __gs_claim_queue(struct gs_Session *session) {
 
 	struct __gs_Queue *queue = (struct __gs_Queue*)session->_queue;
 
-	while (1) {
-
-		while (queue->access_count > 0)
-			sleep(1);
-
-		queue->access_count++;
-		queue->unique_addr = &local;
-		queue->unique_rand = local;
-
-		if (queue->access_count > 1 && (queue->unique_addr != &local || queue->unique_rand != local))
-			queue->access_count--;
-		else
-			break;
-
-	}
+	pthread_mutex_lock(&queue->mtx);
 
 }
 
 void __gs_release_queue(struct gs_Session *session) {
 	struct __gs_Queue *queue = (struct __gs_Queue*)session->_queue;
-	queue->unique_addr = NULL;
-	queue->unique_rand = 0;
-	queue->access_count--;
+	pthread_mutex_unlock(&queue->mtx);
 }
 
 void __gs_queue_push_msg(struct gs_Session *session, DBusMessage *message) {
@@ -253,11 +236,11 @@ int gs_CreateSession(struct gs_Session *session, void *error) {
 	dbus_message_unref(reply);
 
 	session->_queue = malloc(sizeof(struct __gs_Queue));
-	((struct __gs_Queue*)session->_queue)->top = NULL;
-	((struct __gs_Queue*)session->_queue)->bottom = NULL;
-	((struct __gs_Queue*)session->_queue)->access_count = 0;
-	((struct __gs_Queue*)session->_queue)->unique_addr = NULL;
-	((struct __gs_Queue*)session->_queue)->unique_rand = 0;
+	struct __gs_Queue *queue = (struct __gs_Queue*)session->_queue;
+
+	queue->top = NULL;
+	queue->bottom = NULL;
+	pthread_mutex_init(&queue->mtx, NULL);
 	
 	return 0;
 

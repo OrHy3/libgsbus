@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(libgsbus VERSION 0.3)
+project(libgsbus VERSION 1.0)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DBUS REQUIRED dbus-1)
+find_package(Threads REQUIRED)
 
 set(SOURCES src/gsbus.c)
 set(HEADERS include/gsbus.h)
