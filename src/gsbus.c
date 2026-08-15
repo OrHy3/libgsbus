@@ -565,6 +565,62 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 }
 
+int gs_ConfigureShortcuts(struct gs_Session *session) {
+
+	DBusMessage *message = dbus_message_new_method_call(
+		PORTAL_TARGET,
+		PORTAL_OBJECT,
+		PORTAL_INTERFACE,
+		"ConfigureShortcuts"
+	);
+	if (message == NULL)
+		return GS_MSG_CREATION_ERROR;
+
+	DBusMessageIter args;
+	DBusMessageIter array_iter;
+	DBusMessageIter struct_iter;
+	DBusMessageIter dict_iter;
+	DBusMessageIter variant_iter;
+
+	dbus_message_iter_init_append(message, &args);
+
+	dbus_message_iter_append_basic(&args, DBUS_TYPE_OBJECT_PATH, &session->session_id);
+
+	const char *parent_window = "";
+	dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &parent_window);
+
+	dbus_message_iter_open_container(&args, DBUS_TYPE_ARRAY, "{sv}", &array_iter);
+
+	dbus_message_iter_open_container(&array_iter, DBUS_TYPE_DICT_ENTRY, NULL, &dict_iter);
+
+	unsigned random_id;
+	getrandom(&random_id, sizeof(random_id), GRND_NONBLOCK);
+
+	const char *dict_key = "activation_token";
+	char token_string[256];
+	snprintf(token_string, sizeof(token_string), "gsbus_config_%d\0", random_id % 10000);
+	const char *token_string_ptr = token_string;
+
+	dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING, &dict_key);
+
+	dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_VARIANT, "s", &variant_iter);
+
+	dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &token_string_ptr);
+
+	dbus_message_iter_close_container(&dict_iter, &variant_iter);
+	dbus_message_iter_close_container(&array_iter, &dict_iter);
+	dbus_message_iter_close_container(&args, &array_iter);
+
+	int reply = dbus_connection_send((DBusConnection*)session->connection, message, NULL);
+	dbus_message_unref(message);
+
+	if (reply == FALSE)
+		return GS_BAD_REPLY;
+
+	return 0;
+
+}
+
 int gs_GetActivated(struct gs_Session *session, const char **shortcut_id, uint64_t *timestamp, void *error) {
 
 	if (error != NULL)

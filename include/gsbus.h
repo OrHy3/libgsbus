@@ -114,6 +114,14 @@ int gs_ListShortcuts(struct gs_Session *session, struct gs_Shortcut **shortcut_l
 
 
 /*
+ * Calls org.freedesktop.portal.GlobalShortcut.ConfigureShortcuts
+ *
+ */
+int gs_ConfigureShortcuts(struct gs_Session *session);
+
+
+
+/*
  * Procecess the first org.freedesktop.portal.GlobalShortcuts::Activated signal, if any
  *
  *      shortcut_id: the passed pointer will hold the resulting shortcut's name.

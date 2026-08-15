@@ -76,7 +76,7 @@ int main() {
 
 }
 ```
-This last program lists the already registered shortcuts, runs a loop printing every shortcut event (and prints the timestamp for pressed keys only) and quits when a shortcut gets changed.
+This last program lists the already registered shortcuts, opens a configuration window, runs a loop printing every shortcut event (and prints the timestamp for pressed keys only) and quits when a shortcut gets changed.
 ```c
 #include <stdio.h>
 #include <stdint.h>
@@ -92,6 +92,7 @@ int main() {
 	int num = 0;
 
 	gs_ListShortcuts(&session, &shortcut_list, &num, NULL);
+	gs_ConfigureShortcuts(&session);
 
 	for (int i = 0; i < num; i++)
 		printf("Shortcut name: %s\nDescription: %s\nTriggers: %s\n\n",
