@@ -76,7 +76,7 @@ int main() {
 
 }
 ```
-This last program lists the already registered shortcuts, opens a configuration window, runs a loop printing every shortcut event (and prints the timestamp for pressed keys only) and quits when a shortcut gets changed.
+This last program lists the already registered shortcuts, opens a configuration window, runs a loop printing every shortcut event (and prints the timestamp for pressed keys only) and quits when a shortcut gets changed. Even without a preferred trigger, every shortcut needs to be rebinded at program start, with identical name and description.
 ```c
 #include <stdio.h>
 #include <stdint.h>
@@ -87,6 +87,14 @@ int main() {
 	struct gs_Session session;
 
 	gs_CreateSession(&session, NULL);
+
+	struct gs_Shortcut shortcuts[] = {
+		{
+			.name = "ExampleKey",
+			.description = "This is an example shortcut"
+		}
+	};
+	gs_BindShortcuts(&session, shortcuts, 1, NULL);
 
 	struct gs_Shortcut *shortcut_list;
 	int num = 0;
